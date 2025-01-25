@@ -9,6 +9,7 @@ output:
     number_sections: true
 ---
 
+## Load libraries
 ```{r setup, include=FALSE, message=FALSE}
 x <- c("knitr", "DiffBind", "DESeq2", "ggplot2", "")
 library(knitr)
