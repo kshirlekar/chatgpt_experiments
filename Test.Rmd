@@ -1,0 +1,121 @@
+---
+title: "Differential Accessibility Analysis with DiffBind and DESeq2"
+author: "Kalyanee Shirlekar"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+---
+
+```{r setup, include=FALSE, message=FALSE}
+x <- c("knitr", "DiffBind", "DESeq2", "ggplot2", "")
+library(knitr)
+library(DiffBind)
+library(DESeq2)
+library(ggplot2)
+library(pheatmap)
+opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+## 1. Introduction
+This notebook performs differential chromatin accessibility analysis using ATAC-Seq data. We will use `DiffBind` for initial peak handling and `DESeq2` for statistical analysis.
+
+## 2. Load Libraries and Data
+
+### 2.1 Load Libraries
+```{r load-libraries}
+library(DiffBind)
+library(DESeq2)
+library(ggplot2)
+library(pheatmap)
+```
+
+### 2.2 Load Sample Sheet
+Prepare a `.csv` file with sample metadata (e.g., file paths, conditions, replicates). Load it into R:
+
+```{r load-samples}
+samples <- read.csv("samplesheet.csv")
+head(samples)
+```
+
+## 3. Create a DiffBind Object
+
+### 3.1 Initialize the DBA Object
+```{r init-dba}
+dba_object <- dba(sampleSheet = samples)
+dba_object
+```
+
+### 3.2 Generate a Correlation Heatmap
+```{r correlation-heatmap}
+dba.plotHeatmap(dba_object)
+```
+
+## 4. Perform Differential Analysis
+
+### 4.1 Count Reads in Peaks
+```{r count-reads}
+dba_object <- dba.count(dba_object, summits = 250)
+```
+
+### 4.2 Set Up the Contrast
+Specify the condition to compare:
+```{r setup-contrast}
+dba_object <- dba.contrast(dba_object, categories = DBA_CONDITION, minMembers = 2)
+```
+
+### 4.3 Perform the Differential Analysis
+```{r run-diffbind}
+dba_object <- dba.analyze(dba_object, method = DBA_DESEQ2)
+```
+
+## 5. Explore Results
+
+### 5.1 View Significant Peaks
+```{r view-results}
+results <- dba.report(dba_object, th = 0.05)
+head(results)
+```
+
+### 5.2 Plot MA Plot
+```{r ma-plot}
+plotMA(results)
+```
+
+### 5.3 Heatmap of Significant Peaks
+```{r heatmap}
+dba.plotHeatmap(dba_object, contrast = 1, correlations = FALSE)
+```
+
+## 6. Visualize Differential Accessibility
+
+### 6.1 Volcano Plot
+```{r volcano-plot}
+volcano_data <- as.data.frame(results)
+ggplot(volcano_data, aes(x = log2FoldChange, y = -log10(pvalue))) +
+  geom_point(aes(color = padj < 0.05)) +
+  theme_minimal() +
+  labs(title = "Volcano Plot", x = "Log2 Fold Change", y = "-Log10 P-value")
+```
+
+### 6.2 Boxplot of Key Regions
+Identify specific regions of interest and plot their accessibility:
+```{r boxplot-regions}
+key_region <- "chr1:123456-123789"
+boxplot_data <- plotCounts(dba_object, gene = key_region, returnData = TRUE)
+ggplot(boxplot_data, aes(x = condition, y = count, fill = condition)) +
+  geom_boxplot() +
+  labs(title = paste("Accessibility at", key_region), x = "Condition", y = "Counts") +
+  theme_minimal()
+```
+
+## 7. Save Results
+Export the results to a file for further analysis:
+```{r save-results}
+write.csv(as.data.frame(results), "differential_accessibility_results.csv")
+```
+
+## 8. Conclusion
+This analysis identified differentially accessible regions in the dataset, providing insights into chromatin changes associated with the studied conditions. Further exploration, such as pathway enrichment or motif analysis, could refine these findings.
