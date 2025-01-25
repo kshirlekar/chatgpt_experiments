@@ -119,3 +119,5 @@ write.csv(as.data.frame(results), "differential_accessibility_results.csv")
 
 ## 8. Conclusion
 This analysis identified differentially accessible regions in the dataset, providing insights into chromatin changes associated with the studied conditions. Further exploration, such as pathway enrichment or motif analysis, could refine these findings.
+
+# New Visualizations
